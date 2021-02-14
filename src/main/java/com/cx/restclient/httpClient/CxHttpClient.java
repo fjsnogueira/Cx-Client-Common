@@ -119,25 +119,13 @@ public class CxHttpClient implements Closeable {
         //create httpclient
         cb.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build());
         setSSLTls("TLSv1.2", log);
-        SSLContextBuilder builder = new SSLContextBuilder();
-        SSLConnectionSocketFactory sslConnectionSocketFactory = null;
-        Registry<ConnectionSocketFactory> registry;
-        PoolingHttpClientConnectionManager cm = null;
         if (disableSSLValidation) {
             try {
-                builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-                sslConnectionSocketFactory = new SSLConnectionSocketFactory(builder.build(), NoopHostnameVerifier.INSTANCE);
-                registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                        .register("http", new PlainConnectionSocketFactory())
-                        .register(HTTPS, sslConnectionSocketFactory)
-                        .build();
-                cm = new PoolingHttpClientConnectionManager(registry);
-                cm.setMaxTotal(100);
-            } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-                log.error(e.getMessage());
+                cb.setSSLSocketFactory(getTrustAllSSLSocketFactory());
+                cb.setConnectionManager(getHttpConnectionManager(true));
+            } catch (CxClientException e) {
+                log.warn("Failed to disable certificate verification: " + e.getMessage());
             }
-            cb.setSSLSocketFactory(sslConnectionSocketFactory);
-            cb.setConnectionManager(cm);
         } else {
             cb.setConnectionManager(getHttpConnectionManager(false));
         }
